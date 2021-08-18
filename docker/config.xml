@@ -1,0 +1,10 @@
+<config xmlns="http://transpect.io/control">
+  <db>control</db>
+  <locale>en</locale>
+  <host>localhost</host>
+  <port>9080</port>
+  <svnusername>testi</svnusername>
+  <svnpassword>popesti</svnpassword>
+  <path>/basex/control</path>
+  <datadir>/data/</datadir>
+</config>
