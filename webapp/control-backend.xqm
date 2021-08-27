@@ -69,8 +69,9 @@ function control-backend:process-commit-log($log as xs:string, $customization as
           return
           for $temp-path in control-backend:get-commit-file($action/../@repo-path, $action/@path, $action/../@revision, $customization)
           return (
-            control-backend:add-xml-by-path($temp-path, $action/@path, $customization),
-            file:delete(file:parent($temp-path), true())
+          prof:dump($temp-path || ' :: ' || $action/@path, 'PPPP'), 
+            control-backend:add-xml-by-path($temp-path, $action/@path, $customization)(:,
+            file:delete(file:parent($temp-path), true()):)
           )
         case 'delete'
           return control-backend:remove-xml-by-path($action/@path, $customization)
@@ -108,7 +109,6 @@ declare
   %output:method("xml")
   %updating
 function control-backend:add-xml-by-path($fspath as xs:string, $dbpath as xs:string, $customization as xs:string) {
-  update:output(<doc>{control-backend:determine-lang(doc($fspath))}</doc>),
   let $doc := doc($fspath),
       $lang as xs:string := control-backend:determine-lang($doc),
       $ftdb as xs:string := string(doc('../control/config.xml')/control:config/control:ftindexes/control:ftindex[@lang = ($lang, 'en')[1]]),
