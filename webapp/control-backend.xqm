@@ -116,10 +116,11 @@ function control-backend:add-xml-by-path($fspath as xs:string, $dbpath as xs:str
   return 
   (
     if (not(db:exists($ftdb)))
-    then db:create($ftdb, $fspath, $dbpath-or-fallback, map{'language': $lang, 'ftindex': true(), 'diacritics': true()}) 
-    else db:replace($ftdb, $dbpath-or-fallback, control-backend:apply-ft-xslt(doc($fspath))),
+    then db:create($ftdb, control-backend:apply-ft-xslt($doc), $dbpath-or-fallback, 
+                   map{'language': $lang, 'ftindex': true(), 'diacritics': true()}) 
+    else db:replace($ftdb, $dbpath-or-fallback, control-backend:apply-ft-xslt($doc)),
     if (not(db:exists($db))) 
-    then db:create($db, $fspath, $dbpath-or-fallback, map{'updindex': true()}) 
+    then db:create($db, $doc, $dbpath-or-fallback, map{'updindex': true()}) 
     else db:replace($db, $dbpath-or-fallback, $doc)
   )
 };
