@@ -7,5 +7,5 @@
 
 target=$4/$(basename $2)
 
-svnlook cat -r $3 $1 $2 > $4 > /dev/null
+svnlook cat -r $3 $1 $2 > $target
 echo -n $(target)

@@ -83,7 +83,7 @@ declare function control-backend:get-commit-file($path-to-repo, $path-in-repo, $
   let $local-dir := '/tmp/transpect-control/commits' || $path-to-repo || replace($path-in-repo, '[^/]+$', '')
   return (
     file:create-dir($local-dir),
-    proc:execute('scripts/svnlook-cat.sh', ($path-to-repo, $path-in-repo, $revision, $local-dir))
+    proc:system(file:resolve-path('basex/webapp/control-backend/scripts/svnlook-cat.sh'), ($path-to-repo, $path-in-repo, $revision, $local-dir))
   )
 };
 
@@ -112,13 +112,16 @@ function control-backend:add-xml-by-path($fspath as xs:string, $dbpath as xs:str
   let $doc := doc($fspath),
       $lang as xs:string := control-backend:determine-lang($doc),
       $ftdb as xs:string := string(doc('../control/config.xml')/control:config/control:ftindexes/control:ftindex[@lang = ($lang, 'en')[1]]),
-      $db as xs:string := string(doc('../control/config.xml')/control:config/control:db)
+      $db as xs:string := string(doc('../control/config.xml')/control:config/control:db),
+      $dbpath-or-fallback := if (not($dbpath)) then $fspath else $dbpath 
   return 
   (
-    if (not(exists($ftdb))) then db:create($ftdb, (), (), map{'language': $lang, 'ftindex': true(), 'diacritics': true()}) else (),
-    if (not(exists($db))) then db:create($db, (), (), map{'updindex': true()}) else (),
-    db:replace($ftdb, if (not($dbpath)) then $fspath else $dbpath, control-backend:apply-ft-xslt(doc($fspath))),
-    db:replace($db, if (not($dbpath)) then $fspath else $dbpath, $doc)
+    if (not(db:exists($ftdb)))
+    then db:create($ftdb, $fspath, $dbpath-or-fallback, map{'language': $lang, 'ftindex': true(), 'diacritics': true()}) 
+    else db:replace($ftdb, $dbpath-or-fallback, control-backend:apply-ft-xslt(doc($fspath))),
+    if (not(db:exists($db))) 
+    then db:create($db, $fspath, $dbpath-or-fallback, map{'updindex': true()}) 
+    else db:replace($db, $dbpath-or-fallback, $doc)
   )
 };
 
