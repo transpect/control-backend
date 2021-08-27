@@ -69,7 +69,6 @@ function control-backend:process-commit-log($log as xs:string, $customization as
           return
           for $temp-path in control-backend:get-commit-file($action/../@repo-path, $action/@path, $action/../@revision, $customization)
           return (
-          prof:dump($temp-path || ' :: ' || $action/@path, 'PPPP'), 
             control-backend:add-xml-by-path($temp-path, $action/@path, $customization)(:,
             file:delete(file:parent($temp-path), true()):)
           )
