@@ -134,7 +134,7 @@ declare
 function control-backend:add-xml-by-svn-info($svn-info-filename as xs:string, $customization as xs:string) {
   let $svn-info := doc($svn-info-filename),
       $dir := file:parent($svn-info-filename)
-  return <docs> {
+  return
     for $entry in $svn-info/svn-info/info/entry
     let $fs-relpath := $entry/@path,
         $resolved-fs-path := file:resolve-path($fs-relpath, $dir),
@@ -146,7 +146,6 @@ function control-backend:add-xml-by-svn-info($svn-info-filename as xs:string, $c
       attribute fspath {$resolved-fs-path},
       attribute dbpath {$repo-lastpath || $path-in-repo}
     }</doc>:)
-  }</docs>
 };
 
 declare function control-backend:apply-ft-xslt($doc as document-node(element(*))) {
