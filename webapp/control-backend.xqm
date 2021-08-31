@@ -127,14 +127,26 @@ function control-backend:add-xml-by-path($fspath as xs:string, $dbpath as xs:str
 
 declare
   %rest:GET
-  %rest:path("/control-backend/{$customization}/add-xml-to-ftindex-by-path")
-  %rest:query-param("fspath", "{$fspath}")
-  %rest:query-param("dbpath", "{$dbpath}", '')
+  %rest:path("/control-backend/{$customization}/add-xml-by-svn-info")
+  %rest:query-param("svn-info-filename", "{$svn-info-filename}")
   %output:method("xml")
   %updating
-function control-backend:add-xml-to-ftindex-by-path($fspath as xs:string, $dbpath as xs:string, $customization as xs:string) {
-  update:output(<success/>),
-  db:replace('control_FT_de', if (not($dbpath)) then $fspath else $dbpath, control-backend:apply-ft-xslt(doc($fspath)))
+function control-backend:add-xml-by-svn-info($svn-info-filename as xs:string, $customization as xs:string) {
+  let $svn-info := doc($svn-info-filename),
+      $dir := file:parent($svn-info-filename)
+  return <docs> {
+    for $entry in $svn-info/svn-info/info/entry
+    let $fs-relpath := $entry/@path,
+        $resolved-fs-path := file:resolve-path($fs-relpath, $dir),
+        $repo-url := $entry/repository/root,
+        $repo-lastpath := ($repo-url => tokenize('/'))[last()],
+        $path-in-repo :=$entry/relative-url => replace('^\^', '')
+    return control-backend:add-xml-by-path($fspath, $dbpath, $customization)
+    (:<doc>{
+      attribute fspath {$resolved-fs-path},
+      attribute dbpath {$repo-lastpath || $path-in-repo}
+    }</doc>:)
+  }</docs>
 };
 
 declare function control-backend:apply-ft-xslt($doc as document-node(element(*))) {
