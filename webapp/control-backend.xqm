@@ -141,7 +141,7 @@ function control-backend:add-xml-by-svn-info($svn-info-filename as xs:string, $c
         $repo-url := $entry/repository/root,
         $repo-lastpath := ($repo-url => tokenize('/'))[last()],
         $path-in-repo :=$entry/relative-url => replace('^\^', '')
-    return control-backend:add-xml-by-path($fspath, $dbpath, $customization)
+    return control-backend:add-xml-by-path($resolved-fs-path, $repo-lastpath || $path-in-repo, $customization)
     (:<doc>{
       attribute fspath {$resolved-fs-path},
       attribute dbpath {$repo-lastpath || $path-in-repo}
