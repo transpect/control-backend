@@ -132,6 +132,7 @@ declare
   %output:method("xml")
   %updating
 function control-backend:add-xml-by-svn-info($svn-info-filename as xs:string, $customization as xs:string) {
+  update:output(<success/>),
   let $svn-info := doc($svn-info-filename),
       $dir := file:parent($svn-info-filename)
   return
