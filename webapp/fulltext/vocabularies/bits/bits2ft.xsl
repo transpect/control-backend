@@ -33,14 +33,18 @@
       <xsl:apply-templates select="." mode="path"/>
       <xsl:apply-templates mode="fulltext-text"/>
     </xsl:copy>
+    <xsl:apply-templates select=".//boxed-text" mode="fulltext"/>
   </xsl:template>
+  
+  <xsl:template match="boxed-text" mode="fulltext-text"/>
+  
   
   <xsl:template match="*" mode="path" as="attribute(path)">
     <xsl:attribute name="path" select="path()"/>
   </xsl:template>
   
   <xsl:template match="title | p" mode="fulltext-text fulltext" priority="10">
-    <xsl:variable name="next-match" as="element(*)">
+    <xsl:variable name="next-match" as="element(*)+">
       <xsl:next-match/>
     </xsl:variable>
     <xsl:apply-templates select="$next-match" mode="fulltext-untangle-nested"/>
@@ -97,7 +101,7 @@
     <xsl:text> </xsl:text>
   </xsl:template>
   
-  <xsl:template match="book-part | front-matter-part | sec | glossary | preface" mode="fulltext" priority="1">
+  <xsl:template match="book-part | front-matter-part | sec | glossary | preface | boxed-text" mode="fulltext" priority="1">
     <div xsl:exclude-result-prefixes="#all">
       <xsl:apply-templates select="label" mode="label"/>
       <xsl:apply-templates mode="#current"/>
