@@ -59,7 +59,8 @@ declare
 function control-backend:process-commit-log($log as xs:string, $customization as xs:string) {
   update:output(<success/>),
   let $parsed-log := control-backend:parse-commit-log($log, $customization),
-      $base-svnurl as xs:string := doc('../control/config.xml')/control:config/control:repos/control:repo[@role = 'works']/@svnurl
+      $base-svnurl as xs:string := doc('../control/config.xml')/control:config
+                                    /control:repos/control:repo[@role = 'works']/@svnurl ! string(.)
   return
     for $pattern in doc('../control/config.xml')/control:config/control:ftindexes/control:file/@pattern
     return
