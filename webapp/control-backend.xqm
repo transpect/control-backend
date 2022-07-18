@@ -58,7 +58,8 @@ declare
   %updating
 function control-backend:process-commit-log($log as xs:string, $customization as xs:string) {
   update:output(<success/>),
-  let $parsed-log := control-backend:parse-commit-log($log, $customization)
+  let $parsed-log := control-backend:parse-commit-log($log, $customization),
+      $base-svnurl as xs:string := doc('../control/config.xml')/control:config/control:repos/control:repo[@role = 'works']/@svnurl
   return
     for $pattern in doc('../control/config.xml')/control:config/control:ftindexes/control:file/@pattern
     return
@@ -69,7 +70,7 @@ function control-backend:process-commit-log($log as xs:string, $customization as
           return
           for $temp-path in control-backend:get-commit-file($action/../@repo-path, $action/@path, $action/../@revision, $customization)
           return (
-            control-backend:add-xml-by-path($temp-path, $action/@path, $customization)(:,
+            control-backend:add-xml-by-path($temp-path, $base-svnurl || $action/@path, $customization)(:,
             file:delete(file:parent($temp-path), true()):)
           )
         case 'delete'
