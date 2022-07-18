@@ -40,6 +40,7 @@ function control-backend:parse-commit-log($log as xs:string, $customization as x
     for $line in $lines[position() gt 1]
     let $items := $line => tokenize(),
         $action as xs:string? := switch($items[1])
+                                 case 'A' return 'add'
                                  case 'U' return 'update'
                                  case 'D' return 'delete'
                                  default return ()
@@ -67,6 +68,7 @@ function control-backend:process-commit-log($log as xs:string, $customization as
       for $action in $parsed-log/*[matches(@path, $pattern)]
       return (
       switch($action/local-name())
+        case 'add'
         case 'update'
           return
           for $temp-path in control-backend:get-commit-file($action/../@repo-path, $action/@path, $action/../@revision, $customization)
