@@ -1,5 +1,4 @@
 module namespace control-backend = 'http://transpect.io/control-backend';
-
 declare namespace control = 'http://transpect.io/control';
 
 (:declare
@@ -77,11 +76,34 @@ function control-backend:process-commit-log($log as xs:string, $customization as
             file:delete(file:parent($temp-path), true()):)
           )
         case 'delete'
-          return control-backend:remove-xml-by-path($action/@path, $customization)
+          return let $svnurl := control-backend:get-canonical-path(string-join(($parsed-log/@repo-path,$action/@path),'/')),
+                     $updated-index := control-backend:remove-path-index-at-svnurl(db:open('INDEX'),$svnurl)
+                   return (control-backend:writeindextofileupdate($updated-index),
+                           control-backend:remove-xml-by-path($action/@path, $customization))
         default return ()
       )
 };
 
+declare function control-backend:remove-path-index-at-svnurl($index, $svnurl as xs:string){
+  let $updated-index :=  
+       copy $ind := $index
+       modify (
+         delete node $ind//*[@svnurl eq $svnurl]
+       )
+       return $ind
+  return $updated-index
+};
+
+declare function control-backend:get-canonical-path($svnurl as xs:string){
+  replace(replace($svnurl, '^/data/svn/', 'http://127.0.0.1/content/'),'/$','')
+};
+
+declare 
+  %updating
+function control-backend:writeindextofileupdate($index) {
+  file:write("/home/transpect-control/basex/webapp/control/index.xml",$index),
+  db:replace('INDEX','index.xml', '/home/transpect-control/basex/webapp/control/index.xml')
+};
 declare function control-backend:get-commit-file($path-to-repo, $path-in-repo, $revision, $customization) as xs:string {
   (: returns the path to the file that has been saved using svnlook cat :)
   let $local-dir := '/tmp/transpect-control/commits' || $path-to-repo || replace($path-in-repo, '[^/]+$', '')
