@@ -1,4 +1,7 @@
 module namespace control-backend = 'http://transpect.io/control-backend';
+
+import module namespace svn = 'io.transpect.basex.extensions.subversion.XSvnApi';
+import module namespace control-util = 'http://transpect.io/control/util/control-util'    at '../control/util/control-util.xq';
 declare namespace control = 'http://transpect.io/control';
 
 (:declare
@@ -62,7 +65,7 @@ function control-backend:process-commit-log($log as xs:string, $customization as
       $base-svnurl as xs:string := doc('../control/config.xml')/control:config
                                     /control:repos/control:repo[@role = 'works']/@svnpath ! string(.)
   return
-    for $pattern in doc('../control/config.xml')/control:config/control:ftindexes/control:file/@pattern
+    (for $pattern in doc('../control/config.xml')/control:config/control:ftindexes/control:file/@pattern
     return
       for $action in $parsed-log/*[matches(@path, $pattern)]
       return (
@@ -76,12 +79,25 @@ function control-backend:process-commit-log($log as xs:string, $customization as
             file:delete(file:parent($temp-path), true()):)
           )
         case 'delete'
-          return let $svnurl := control-backend:get-canonical-path(string-join(($parsed-log/@repo-path,$action/@path),'/')),
-                     $updated-index := control-backend:remove-path-index-at-svnurl(db:open('INDEX'),$svnurl)
-                   return (control-backend:writeindextofileupdate($updated-index),
-                           control-backend:remove-xml-by-path($action/@path, $customization))
+          return control-backend:remove-xml-by-path($action/@path, $customization)
         default return ()
-      )
+      ),
+      let $updated-index :=  
+        copy $ind := db:open('INDEX')
+        modify (
+         for $action in $parsed-log/*:add
+         let $svnurl := control-backend:get-canonical-path(string-join(($parsed-log/@repo-path,$action/@path),'/'))
+         return for $target in $ind//*[@path = string-join(tokenize($svnurl, '/')[not(position() = last())],'/')
+                                    or @svnurl = string-join(tokenize($svnurl, '/')[not(position() = last())],'/')]
+                return insert node control-util:create-path-index($svnurl, tokenize($svnurl, '/')[last()], 'directory', $svnurl, '')
+                       into $target,
+         for $action in $parsed-log/*:delete
+         let $svnurl := control-backend:get-canonical-path(string-join(($parsed-log/@repo-path,$action/@path),'/'))
+         return for $target in $ind//*[@svnurl = $svnurl]
+                return delete node $target
+        )
+        return $ind
+      return control-backend:writeindextofileupdate($updated-index))
 };
 
 declare function control-backend:remove-path-index-at-svnurl($index, $svnurl as xs:string){
