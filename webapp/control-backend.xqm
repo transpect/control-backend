@@ -86,13 +86,13 @@ function control-backend:process-commit-log($log as xs:string, $customization as
         copy $ind := db:open('INDEX')
         modify (
          for $action in $parsed-log/*:add
-         let $svnurl := control-backend:get-canonical-path(string-join(($parsed-log/@repo-path,$action/@path),'/'))
+         let $svnurl := replace(control-util:get-local-path(string-join(($parsed-log/@repo-path,$action/@path),'/')),'/$','')
          return for $target in $ind//*[@path = string-join(tokenize($svnurl, '/')[not(position() = last())],'/')
                                     or @svnurl = string-join(tokenize($svnurl, '/')[not(position() = last())],'/')]
-                return insert node control-util:create-path-index($svnurl, tokenize($svnurl, '/')[last()], 'directory', $svnurl, '')
+                return insert node control-util:create-path-index(control-util:get-canonical-path($svnurl), tokenize($svnurl, '/')[last()], 'directory', $svnurl, '')
                        into $target,
          for $action in $parsed-log/*:delete
-         let $svnurl := control-backend:get-canonical-path(string-join(($parsed-log/@repo-path,$action/@path),'/'))
+         let $svnurl := replace(control-util:get-local-path(string-join(($parsed-log/@repo-path,$action/@path),'/')),'/$','')
          return for $target in $ind//*[@svnurl = $svnurl]
                 return delete node $target
         )
@@ -110,9 +110,6 @@ declare function control-backend:remove-path-index-at-svnurl($index, $svnurl as 
   return $updated-index
 };
 
-declare function control-backend:get-canonical-path($svnurl as xs:string){
-  replace(replace($svnurl, '^/data/svn/', 'http://127.0.0.1/content/'),'/$','')
-};
 
 declare 
   %updating
@@ -120,6 +117,7 @@ function control-backend:writeindextofileupdate($index) {
   file:write("/home/transpect-control/basex/webapp/control/index.xml",$index),
   if (db:exists('INDEX')) then db:replace('INDEX','index.xml', '/home/transpect-control/basex/webapp/control/index.xml') else db:create('INDEX', '/home/transpect-control/basex/webapp/control/index.xml')
 };
+
 declare function control-backend:get-commit-file($path-to-repo, $path-in-repo, $revision, $customization) as xs:string {
   (: returns the path to the file that has been saved using svnlook cat :)
   let $local-dir := '/tmp/transpect-control/commits' || $path-to-repo || replace($path-in-repo, '[^/]+$', '')
