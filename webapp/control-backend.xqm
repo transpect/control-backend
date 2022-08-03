@@ -118,7 +118,7 @@ declare
   %updating
 function control-backend:writeindextofileupdate($index) {
   file:write("/home/transpect-control/basex/webapp/control/index.xml",$index),
-  if (db:exists('INDEX')) then db:replace('INDEX','index.xml', '/home/transpect-control/basex/webapp/control/index.xml') else db:create('INDEX', '/home/transpect-control/basex/webapp/control/index.xml')
+  db:replace('INDEX','index.xml', '/home/transpect-control/basex/webapp/control/index.xml')
 };
 declare function control-backend:get-commit-file($path-to-repo, $path-in-repo, $revision, $customization) as xs:string {
   (: returns the path to the file that has been saved using svnlook cat :)
