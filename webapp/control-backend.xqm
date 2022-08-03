@@ -115,7 +115,7 @@ declare
   %updating
 function control-backend:writeindextofileupdate($index) {
   file:write("/home/transpect-control/basex/webapp/control/index.xml",$index),
-  if (db:exists('INDEX')) then db:replace('INDEX','index.xml', '/home/transpect-control/basex/webapp/control/index.xml') else db:create('INDEX', '/home/transpect-control/basex/webapp/control/index.xml')
+  db:replace('INDEX','index.xml', '/home/transpect-control/basex/webapp/control/index.xml')
 };
 
 declare function control-backend:get-commit-file($path-to-repo, $path-in-repo, $revision, $customization) as xs:string {
@@ -140,6 +140,23 @@ function control-backend:remove-xml-by-path($path, $customization) {
     )
 };
 
+
+declare
+  %rest:GET
+  %rest:path("/control-backend/{$customization}/initialize")
+  %updating
+function control-backend:initialize($customization as xs:string) {
+  let $db as xs:string := string(doc('../control/config.xml')/control:config/control:db)
+  return (
+    for $ftdb in doc('../control/config.xml')/control:config/control:ftindexes/control:ftindex
+    return
+      if (db:exists(string($ftdb))) then () else
+      db:create(string($ftdb), (), (), map{'language': $ftdb/@lang, 'ftindex': true(), 'diacritics': true()}),
+    if (db:exists(string($db))) then () else db:create($db, (), (), map{'updindex': true()}),
+    if (db:exists('INDEX')) then () else db:create('INDEX')
+  )
+};
+
 declare
   %rest:GET
   %rest:path("/control-backend/{$customization}/add-xml-by-path")
@@ -155,13 +172,8 @@ function control-backend:add-xml-by-path($fspath as xs:string, $dbpath as xs:str
       $dbpath-or-fallback := if (not($dbpath)) then $fspath else $dbpath 
   return 
   (
-    if (not(db:exists($ftdb)))
-    then db:create($ftdb, control-backend:apply-ft-xslt($doc), $dbpath-or-fallback, 
-                   map{'language': $lang, 'ftindex': true(), 'diacritics': true()}) 
-    else db:replace($ftdb, $dbpath-or-fallback, control-backend:apply-ft-xslt($doc)),
-    if (not(db:exists($db))) 
-    then db:create($db, $doc, $dbpath-or-fallback, map{'updindex': true()}) 
-    else db:replace($db, $dbpath-or-fallback, $doc)
+     db:replace($ftdb, $dbpath-or-fallback, control-backend:apply-ft-xslt($doc)),
+     db:replace($db, $dbpath-or-fallback, $doc)
   )
 };
 
