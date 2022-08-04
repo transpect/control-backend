@@ -144,14 +144,16 @@ declare
   %rest:path("/control-backend/{$customization}/initialize")
   %updating
 function control-backend:initialize($customization as xs:string) {
-  let $db as xs:string := string(doc('../control/config.xml')/control:config/control:db)
+  let $db as xs:string := string(doc('../control/config.xml')/control:config/control:db),
+      $hierdir as xs:string := string(doc('../control/config.xml')/control:config/control:repos/control:repo[@role = 'hierarchy']/@path)
   return (
     for $ftdb in doc('../control/config.xml')/control:config/control:ftindexes/control:ftindex
     return
       if (db:exists(string($ftdb))) then () else
       db:create(string($ftdb), (), (), map{'language': $ftdb/@lang, 'ftindex': true(), 'diacritics': true()}),
     if (db:exists(string($db))) then () else db:create($db, (), (), map{'updindex': true()}),
-    if (db:exists('INDEX')) then () else db:create('INDEX')
+    if (db:exists('INDEX')) then () 
+        else db:create('INDEX', <root name='root' svnurl='{$hierdir}' virtual-path='{$hierdir}'/>, 'index.xml')
   )
 };
 
