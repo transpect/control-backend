@@ -89,7 +89,7 @@ function control-backend:process-commit-log($log as xs:string, $customization as
          let $svnurl := replace(control-util:get-local-path(string-join(($parsed-log/@repo-path, $action/@path), '/')), '/$', '')
          return for $target in $ind//*[@path = string-join(tokenize($svnurl, '/')[not(position() = last())],'/')
                                     or @svnurl = string-join(tokenize($svnurl, '/')[not(position() = last())],'/')]
-                return insert node control-util:create-path-index(control-util:get-canonical-path($svnurl), tokenize($svnurl, '/')[last()], 'directory', $svnurl, '')
+                return insert node control-util:create-path-index(control-util:get-canonical-path($svnurl), tokenize($svnurl, '/')[last()], 'directory', $target/@virtual-path || '/' || tokenize($svnurl, '/')[last()], '')
                        into $target,
          for $action in $parsed-log/*:delete
          let $svnurl := replace(control-util:get-local-path(string-join(($parsed-log/@repo-path, $action/@path), '/')), '/$', '')
