@@ -2,7 +2,7 @@ module namespace control-backend = 'http://transpect.io/control-backend';
 
 import module namespace svn = 'io.transpect.basex.extensions.subversion.XSvnApi';
 import module namespace control-util = 'http://transpect.io/control/util/control-util'    at '../control/util/control-util.xq';
-declare namespace control = 'http://transpect.io/control' at '../control/control.xq';
+import module namespace control = 'http://transpect.io/control' at '../control/control.xq';
 
 (:declare
   %rest:POST("{$doc}")
