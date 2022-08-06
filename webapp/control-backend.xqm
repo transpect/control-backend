@@ -2,7 +2,7 @@ module namespace control-backend = 'http://transpect.io/control-backend';
 
 import module namespace svn = 'io.transpect.basex.extensions.subversion.XSvnApi';
 import module namespace control-util = 'http://transpect.io/control/util/control-util'    at '../control/util/control-util.xq';
-declare namespace control = 'http://transpect.io/control';
+declare namespace control = 'http://transpect.io/control' at '../control/control.xq';
 
 (:declare
   %rest:POST("{$doc}")
@@ -111,7 +111,7 @@ declare function control-backend:remove-path-index-at-svnurl($index, $svnurl as 
 declare 
   %updating
 function control-backend:writeindextofileupdate($index) {
-  file:write("/home/transpect-control/basex/webapp/control/index.xml",$index),
+  file:write('basex/webapp/control/'||$control:indexfile,$index),
   db:replace('INDEX','index.xml', '/home/transpect-control/basex/webapp/control/index.xml')
 };
 declare function control-backend:get-commit-file($path-to-repo, $path-in-repo, $revision, $customization) as xs:string {
