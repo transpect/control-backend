@@ -148,8 +148,8 @@ function control-backend:initialize($customization as xs:string) {
     for $ftdb in doc('../control/config.xml')/control:config/control:ftindexes/control:ftindex
     return
       if (db:exists(string($ftdb))) then () else
-      db:create(string($ftdb), (), (), map{'language': $ftdb/@lang, 'ftindex': true(), 'diacritics': true()}),
-    if (db:exists(string($db))) then () else db:create($db, (), (), map{'updindex': true()}),
+      db:create(string($ftdb), (), (), map{'language': $ftdb/@lang, 'ftindex': true(), 'diacritics': true(), 'autooptimize': true()}),
+    if (db:exists(string($db))) then () else db:create($db, (), (), map{'updindex': true(), 'autooptimize': true()}),
     if (db:exists('INDEX')) then () 
         else db:create('INDEX', <root name='root' svnurl='{$hierdir}' virtual-path='{$hierdir}'/>, 'index.xml')
   )
@@ -165,8 +165,8 @@ declare
 function control-backend:add-xml-by-path($fspath as xs:string, $dbpath as xs:string, $customization as xs:string) {
   let $doc := doc($fspath),
       $lang as xs:string := control-backend:determine-lang($doc),
-      $ftdb as xs:string := string(doc('../control/config.xml')/control:config/control:ftindexes/control:ftindex[@lang = ($lang, 'en')[1]]),
-      $db as xs:string := string(doc('../control/config.xml')/control:config/control:db),
+      $ftdb as xs:string := string($control:config/control:ftindexes/control:ftindex[@lang = ($lang, 'en')[1]]),
+      $db as xs:string := string($control:config/control:db),
       $dbpath-or-fallback := if (not($dbpath)) then $fspath else $dbpath 
   return 
   (
@@ -214,6 +214,6 @@ declare function control-backend:apply-ft-xslt($doc as document-node(element(*))
      return if ($stylesheet) then xslt:transform($doc, $stylesheet) else $doc
 };
 
-declare function control-backend:determine-lang($doc as document-node(element(*))) as xs:string {
-  $doc/*/@xml:lang
+declare function control-backend:determine-lang($doc as document-node(element(*))) as xs:string? {
+  ($doc/*/@xml:lang => tokenize('-'))[1]
 };
