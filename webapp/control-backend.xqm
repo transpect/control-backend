@@ -163,15 +163,19 @@ declare
   %output:method("xml")
   %updating
 function control-backend:add-xml-by-path($fspath as xs:string, $dbpath as xs:string, $customization as xs:string) {
-  let $doc := doc($fspath),
-      $lang as xs:string := control-backend:determine-lang($doc),
+  let $doc as document-node(element(*)) := try { doc($fspath) } catch * { document { <error/> } },
+      $lang as xs:string? := control-backend:determine-lang($doc)[. = ('de', 'en')],
       $ftdb as xs:string := string($control:config/control:ftindexes/control:ftindex[@lang = ($lang, 'en')[1]]),
       $db as xs:string := string($control:config/control:db),
       $dbpath-or-fallback := if (not($dbpath)) then $fspath else $dbpath 
-  return 
+  return
   (
-     db:replace($ftdb, $dbpath-or-fallback, control-backend:apply-ft-xslt($doc)),
-     db:replace($db, $dbpath-or-fallback, $doc)
+     try {
+       db:replace($ftdb, $dbpath-or-fallback, control-backend:apply-ft-xslt($doc))
+     } catch * {},
+     try {
+       db:replace($db, $dbpath-or-fallback, $doc)
+     } catch * {}
   )
 };
 
@@ -216,4 +220,27 @@ declare function control-backend:apply-ft-xslt($doc as document-node(element(*))
 
 declare function control-backend:determine-lang($doc as document-node(element(*))) as xs:string? {
   ($doc/*/@xml:lang => tokenize('-'))[1]
+};
+
+declare
+  %rest:GET
+  %rest:path("/control-backend/{$customization}/fill-content-index-dbs")
+  %rest:query-param("wcpath", "{$wcpath}")
+  %output:method("xml")
+  %updating
+function control-backend:fill-content-index-dbs($customization as xs:string, $wcpath as xs:string?) {
+  (: the fulltext and content dbs must exist before invoking this, as well as a populated INDEX db :)
+  let $auth := control-util:parse-authorization(request:header("Authorization"))
+  return
+  if (control-util:is-admin($auth?username)) then
+    let $index := db:open('INDEX', 'index.xml'),
+        $hierarchy-repo := $control:config/control:repos/control:repo[@role = 'hierarchy'],
+        $hierarchy-path := $hierarchy-repo/@path,
+        $content-paths := $index//file/@virtual-path[matches(., $control:config/control:ftindexes/control:file/@pattern)]
+    return
+      for $cp in $content-paths
+      let $wcp := replace($cp, '^' || $hierarchy-path, $wcpath),
+          $dbp := $cp/../@svnpath
+      return control-backend:add-xml-by-path($wcp, $dbp, $customization)
+  else web:error(401, 'You are not permitted to fill the content index DBs')
 };
