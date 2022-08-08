@@ -23,9 +23,21 @@
   </xsl:template>
   
   <xsl:template match="book-meta" mode="fulltext">
-    <xsl:apply-templates select="title-group/title" mode="#current"/>
+    <xsl:apply-templates select="book-title-group/book-title, contrib-group" mode="#current"/>
+  </xsl:template>
+  
+  <xsl:template match="book-part-meta" mode="fulltext">
+    <xsl:apply-templates select="title-group/title, contrib-group" mode="#current"/>
   </xsl:template>
 
+  <xsl:template match="contrib" mode="fulltext">
+    <p>
+      <xsl:apply-templates select="." mode="path"/>
+      <xsl:apply-templates select="." mode="fulltext-text"/>
+    </p>
+  </xsl:template>
+
+  <xsl:template match="toc" mode="fulltext"/>
   
   <xsl:template match="p" mode="fulltext fulltext-text">
     <xsl:copy copy-namespaces="no">
@@ -38,9 +50,10 @@
   
   <xsl:template match="boxed-text" mode="fulltext-text"/>
   
+  <xsl:template match="*[@css:display = 'none']" mode="fulltext"/>
   
   <xsl:template match="*" mode="path" as="attribute(path)">
-    <xsl:attribute name="path" select="path()"/>
+    <xsl:attribute name="path" select="path() => replace('/Q\{\}', '/')"/>
   </xsl:template>
   
   <xsl:template match="title | p" mode="fulltext-text fulltext" priority="10">
@@ -79,6 +92,14 @@
     </xsl:copy>
   </xsl:template>
   
+  <xsl:template match="book-title" mode="fulltext">
+    <title>
+      <xsl:copy-of select="parent::book-title-group/parent::*/../@id, ../@id, @id"/>
+      <xsl:apply-templates select="." mode="path"/>
+      <xsl:apply-templates mode="fulltext-text"/>
+    </title>
+  </xsl:template>
+  
   <xsl:template match="table-wrap/caption/title" mode="fulltext" priority="1">
     <p content-type="title" xsl:exclude-result-prefixes="#all">
       <xsl:copy-of select="../@id"/>
@@ -101,7 +122,8 @@
     <xsl:text> </xsl:text>
   </xsl:template>
   
-  <xsl:template match="book-part | front-matter-part | sec | glossary | preface | boxed-text" mode="fulltext" priority="1">
+  <xsl:template match="book-part | front-matter-part | sec | glossary | preface | boxed-text" 
+    mode="fulltext" priority="1">
     <div xsl:exclude-result-prefixes="#all">
       <xsl:apply-templates select="label" mode="label"/>
       <xsl:apply-templates mode="#current"/>
