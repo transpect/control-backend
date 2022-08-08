@@ -2,14 +2,10 @@
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" 
   xmlns:xs="http://www.w3.org/2001/XMLSchema"
   xmlns:jats="http://jats.nlm.nih.gov" 
-  xmlns:dbk="http://docbook.org/ns/docbook" 
   xmlns:css="http://www.w3.org/1996/css"
   xmlns:xlink="http://www.w3.org/1999/xlink" 
-  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-  xmlns:schema="http://www.schema.org/"
   xmlns:saxon="http://saxon.sf.net/"
-  xmlns:chpd="http://chpd.hogrefe.com/ns/"
-  exclude-result-prefixes="css jats dbk xs rdf schema saxon" version="3.0">
+  exclude-result-prefixes="css jats xs xlink saxon" version="3.0">
 
   <xsl:mode name="fulltext" on-no-match="shallow-skip"/>
   <xsl:mode name="fulltext-text" on-no-match="text-only-copy"/>
