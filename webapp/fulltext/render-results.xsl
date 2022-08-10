@@ -8,6 +8,8 @@
 
   <xsl:mode name="render-work-matches" on-no-match="text-only-copy"/>
 
+  <xsl:param name="svnbaseurl" as="xs:string" select="'http://localhost/svn'"/>
+  <xsl:param name="siteurl" as="xs:string" select="'http://localhost/control'"/>
   <xsl:param name="group" select="'hierarchy'"/>
   <xsl:param name="work-id-position" as="xs:integer" select="3">
     <!-- the path component position, measured from the XML file name, which is 1.
@@ -50,11 +52,28 @@
           <xsl:attribute name="open" select="'true'"/>
         </xsl:if>
         <summary>
-          <xsl:value-of select="current-grouping-key()"/>
-          <xsl:if test="exists($terminals)">
-            <xsl:text> </xsl:text>
-            <xsl:value-of select="$terminals[1]/breadcrumbs/title[1]"/>
-          </xsl:if>
+          <xsl:variable name="context" as="element(result)" select="."/>
+          <a href="{$siteurl}?svnurl={
+                    if ($hierarchy-component gt @virtual-steps - $work-id-position)
+                    then string-join(
+                           tokenize(@svnurl, '/')[position() le min((
+                                                      last() - $context/@virtual-steps + $hierarchy-component,
+                                                      last() -1
+                                                 ))],
+                           '/'
+                         )
+                    else $svnbaseurl || 
+                           string-join(
+                           tokenize(@virtual-path, '/')[position() le last() - $context/@virtual-steps + $hierarchy-component],
+                           '/'
+                         )}"
+             target="_blank">
+            <xsl:value-of select="current-grouping-key()"/>
+            <xsl:if test="exists($terminals)">
+              <xsl:text> </xsl:text>
+              <xsl:value-of select="$terminals[1]/breadcrumbs/title[1]"/>
+            </xsl:if>
+          </a>
           <xsl:text> (</xsl:text>
           <xsl:value-of select="count(current-group())"/>
           <xsl:text>)</xsl:text>
