@@ -103,9 +103,9 @@ function control-backend:process-commit-log($log as xs:string, $customization as
                         return delete node $target/*:external[@name = $r/@name],
                         for $a in $parsed-log//*:propdiff/*:added
                         let $e := for $d in $parsed-log//added
-                                  return <external url="{$d/@svnurl}" mount="$d/@name"/>
+                                  return <external url="{$d/@svnurl}" mount="{$d/@name}"/>
                         return insert node control-util:create-external-path(control-util:get-canonical-path($svnurl), $e, $target/@virtual-path) into $target)
-        )
+        )(:hier ist noch ein Fehler :)
         return $ind
       return control-backend:writeindextofileupdate($updated-index))
 };
@@ -130,11 +130,11 @@ return
   <propdiff>
     {for $a in $added
      let $name   := control-util:strip-whitespace(tokenize($a,' ')[last()]),
-         $svnurl := control-util:strip-whitespace(tokenize($a,' ')[1])
+         $svnurl := control-util:get-external-url(control-util:strip-whitespace(tokenize($a,' ')[1]))
      return <added name="{$name}" svnurl="{$svnurl}"></added>,
      for $ r in $removed
      let $name   := control-util:strip-whitespace(tokenize($r,' ')[last()]),
-         $svnurl := control-util:strip-whitespace(tokenize($r,' ')[1])
+         $svnurl := control-util:get-external-url(control-util:strip-whitespace(tokenize($r,' ')[1]))
      return <removed name="{$name}" svnurl="{$svnurl}"></removed>
     }
   </propdiff>
