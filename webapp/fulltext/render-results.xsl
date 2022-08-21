@@ -8,6 +8,8 @@
 
   <xsl:mode name="render-work-matches" on-no-match="text-only-copy"/>
 
+  <xsl:param name="term" as="xs:string" select="'test'"/>
+  <xsl:param name="langs" as="xs:string" select="'de,en'"/>
   <xsl:param name="svnbaseurl" as="xs:string" select="'http://localhost/svn'"/>
   <xsl:param name="siteurl" as="xs:string" select="'http://localhost/control'"/>
   <xsl:param name="group" select="'hierarchy'"/>
@@ -66,7 +68,9 @@
                            string-join(
                            tokenize(@virtual-path, '/')[position() le last() - $context/@virtual-steps + $hierarchy-component],
                            '/'
-                         )}"
+                         )}&amp;restrict_path=true&amp;term={$term}{
+                           string-join(for $lang in tokenize($langs, ',') return '&amp;lang=' || $lang)
+                         }"
              target="_blank">
             <xsl:value-of select="current-grouping-key()"/>
             <xsl:if test="exists($terminals)">
