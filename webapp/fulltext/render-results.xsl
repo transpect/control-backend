@@ -9,6 +9,7 @@
   <xsl:mode name="render-work-matches" on-no-match="text-only-copy"/>
 
   <xsl:param name="term" as="xs:string" select="'test'"/>
+  <xsl:param name="xpath" as="xs:string" select="''"/>
   <xsl:param name="langs" as="xs:string" select="'de,en'"/>
   <xsl:param name="svnbaseurl" as="xs:string" select="'http://localhost/svn'"/>
   <xsl:param name="siteurl" as="xs:string" select="'http://localhost/control'"/>
@@ -50,7 +51,7 @@
       <xsl:variable name="terminals" as="element(result)*"
         select="current-group()/self::result[@virtual-steps + 1 - $work-id-position = $hierarchy-component]"/>
       <details>
-        <xsl:if test="$open">
+        <xsl:if test="$open or count(current-group()) = 1">
           <xsl:attribute name="open" select="'true'"/>
         </xsl:if>
         <summary>
@@ -68,7 +69,7 @@
                            string-join(
                            tokenize(@virtual-path, '/')[position() le last() - $context/@virtual-steps + $hierarchy-component],
                            '/'
-                         )}&amp;restrict_path=true&amp;term={$term}{
+                         )}&amp;restrict_path=true&amp;term={$term}&amp;xpath={$xpath}{
                            string-join(for $lang in tokenize($langs, ',') return '&amp;lang=' || $lang)
                          }"
              target="_blank">

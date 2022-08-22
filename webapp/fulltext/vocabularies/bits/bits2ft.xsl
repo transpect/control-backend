@@ -96,9 +96,10 @@
     </title>
   </xsl:template>
   
-  <xsl:template match="table-wrap/caption/title" mode="fulltext" priority="1">
+  <xsl:template match="caption/title" mode="fulltext" priority="1">
     <p content-type="title" xsl:exclude-result-prefixes="#all">
-      <xsl:copy-of select="../@id"/>
+      <xsl:copy-of select="ancestor[@id][1]/@id"/>
+      <xsl:apply-templates select="." mode="path"/>
       <xsl:apply-templates mode="fulltext-text"/>
     </p>
   </xsl:template>
