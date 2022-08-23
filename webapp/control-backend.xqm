@@ -174,6 +174,7 @@ declare
   %rest:path("/control-backend/{$customization}/initialize")
   %updating
 function control-backend:initialize($customization as xs:string) {
+  update:output(<success/>),
   let $db as xs:string := string(doc('../control/config.xml')/control:config/control:db),
       $hierdir as xs:string := string(doc('../control/config.xml')/control:config/control:repos/control:repo[@role = 'hierarchy']/@path)
   return (
