@@ -84,7 +84,7 @@
           <xsl:text>)</xsl:text>
         </summary>
         <xsl:if test="$open">
-          <xsl:for-each-group select="current-group()" group-by="@breadcrumbs-signature">
+          <xsl:for-each-group select="current-group()" group-by="(@breadcrumbs-signature, @path)[1]">
             <xsl:choose>
               <xsl:when test="exists(current-group()/context)">
                 <details open="true" class="work-matches">
@@ -95,6 +95,12 @@
                     <xsl:apply-templates select="current-group()/context" mode="render-work-matches"/>
                   </ul>
                 </details>    
+              </xsl:when>
+              <xsl:when test="empty(current-group()/breadcrumbs)">
+                <!-- XPath-only results -->
+                <ul>
+                  <xsl:apply-templates select="current-group()" mode="render-work-matches"/>
+                </ul>
               </xsl:when>
               <xsl:otherwise>
                 <p class="search-breadcrumbs">
@@ -126,6 +132,14 @@
       <xsl:apply-templates select="breadcrumbs/title[position() gt 1]" mode="#current"/>
     </p>
     <xsl:apply-templates select="context" mode="#current"/>
+  </xsl:template>
+  
+  <xsl:template match="result[empty(context)][empty(breadcrumbs)]" mode="render-work-matches">
+    <li>
+      <p class="search-xpath">
+        <xsl:value-of select="@path"/>
+      </p>
+    </li>
   </xsl:template>
 
   <xsl:template match="context" mode="render-work-matches">
