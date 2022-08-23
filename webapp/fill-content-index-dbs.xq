@@ -20,4 +20,4 @@ function control-backend:fill-content-index-dbs2($customization as xs:string, $w
       return control-backend:add-xml-by-path($wcp, $dbp, $customization)
 };
 
-control-backend:fill-content-index-dbs2('default', '/data/hobots/davomat/code/converter/generic/HoBoTS_a6d6d3c094a8/content/')
+control-backend:fill-content-index-dbs2('default', $control:config/control:repos/control:repo[@role = 'hierarchy']/@wc-path)
