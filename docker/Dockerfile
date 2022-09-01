@@ -22,6 +22,7 @@ RUN svnadmin create /data/svn/hierarchy
 
 RUN cd /etc/apache2/mods-enabled && ln -s ../mods-available/proxy.load ../mods-available/proxy_http.load .
 COPY apache/reverse-proxy.conf /etc/apache2/conf-available
+COPY apache/ports.conf /etc/apache2
 RUN cd /etc/apache2/conf-enabled && ln -s ../conf-available/reverse-proxy.conf .
 
 ARG BASEXDIR=/home/transpect-control
