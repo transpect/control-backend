@@ -7,6 +7,7 @@
   exclude-result-prefixes="xs saxon html" version="3.0">
 
   <xsl:mode name="render-work-matches" on-no-match="text-only-copy"/>
+  <xsl:mode name="augment-xpath-links" on-no-match="shallow-copy"/>
 
   <xsl:param name="term" as="xs:string" select="'test'"/>
   <xsl:param name="xpath" as="xs:string" select="''"/>
@@ -19,6 +20,7 @@
       Example: in imprint/series/workid/xml/file.xml, workid is 3rd to last --> 
   </xsl:param>
   <xsl:param name="show-details" as="xs:boolean" select="true()"/>
+  <xsl:param name="customization" as="xs:string" select="'default'"/>
 
   <xsl:template match="search-results">
     <div id="search-results">
@@ -75,11 +77,11 @@
              target="_blank">
             <xsl:value-of select="current-grouping-key()"/>
             <xsl:if test="exists($terminals)">
-              <xsl:text> </xsl:text>
+              <xsl:text xml:space="preserve"> </xsl:text>
               <xsl:value-of select="$terminals[1]/breadcrumbs/title[1]"/>
             </xsl:if>
           </a>
-          <xsl:text> (</xsl:text>
+          <xsl:text xml:space="preserve"> (</xsl:text>
           <xsl:value-of select="count(current-group())"/>
           <xsl:text>)</xsl:text>
         </summary>
@@ -136,21 +138,44 @@
   
   <xsl:template match="result[empty(context)][empty(breadcrumbs)]" mode="render-work-matches">
     <li>
-      <p class="search-xpath">
-        <xsl:value-of select="@path"/>
-      </p>
+      <xsl:apply-templates select="@path" mode="#current"/>
     </li>
   </xsl:template>
 
   <xsl:template match="context" mode="render-work-matches">
     <li>
-      <p class="search-xpath">
-        <xsl:value-of select="../@path"/>
-      </p>
+      <xsl:apply-templates select="../@path" mode="#current"/>
       <p class="search-context">
         <xsl:apply-templates mode="#current"/>
       </p>
     </li>
+  </xsl:template>
+  
+  <xsl:template match="@path" mode="render-work-matches">
+    <xsl:variable name="dbpath" as="xs:string" select="../@dbpath"/>
+    <xsl:variable name="prelim" as="document-node()">
+      <xsl:document>
+        <xsl:analyze-string select="." regex="/">
+          <xsl:matching-substring>
+            <xsl:value-of select="."/>
+          </xsl:matching-substring>
+          <xsl:non-matching-substring>
+            <a href="{$siteurl}/{$customization}/render-xml-source?svn-url={$dbpath}&amp;xpath=">
+              <xsl:value-of select="."/>
+            </a>
+          </xsl:non-matching-substring>
+        </xsl:analyze-string>
+      </xsl:document>
+    </xsl:variable>
+    <p class="search-xpath">
+      <input type="button" value="Copy"/>
+      <xsl:apply-templates select="$prelim" mode="augment-xpath-links"/>
+    </p>
+  </xsl:template>
+  
+  <xsl:template match="html:a/@href" mode="augment-xpath-links">
+    <xsl:attribute name="href" select="string-join((., ../preceding-sibling::node(), ..))"/>
+    <xsl:attribute name="target" select="'xmlsrc'"/>
   </xsl:template>
 
   <xsl:template match="breadcrumbs/title" mode="render-work-matches">
@@ -158,7 +183,7 @@
       <xsl:apply-templates mode="#current"/>
     </span>
     <xsl:if test="not(position() = last())">
-      <xsl:text> > </xsl:text>
+      <xsl:text xml:space="preserve"> > </xsl:text>
     </xsl:if>
   </xsl:template>
   
