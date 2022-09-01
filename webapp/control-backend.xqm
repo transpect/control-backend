@@ -44,14 +44,11 @@ function control-backend:parse-commit-log($log as xs:string, $customization as x
         $action as xs:string? := switch($items[1])
                                  case 'A' return 'add'
                                  case 'U' return 'update'
-                                 case '_U' return 'propupdate'
                                  case 'D' return 'delete'
                                  default return ()
     return (
       if ($action) then element{$action}{
-        attribute path {$items[2]},
-        if ($action eq 'propupdate')
-        then control-backend:parse-prop-update(control-util:get-canonical-path($repo-path || '/' || $items[2]), $revision)
+        attribute path {$items[2]}
       } else ()
     )
   }</commit>
@@ -90,23 +87,14 @@ function control-backend:process-commit-log($log as xs:string, $customization as
          for $action in $parsed-log/*:add
          let $svnurl := replace(control-util:get-local-path(string-join(($parsed-log/@repo-path, $action/@path), '/')), '/$', '')
          return for $target in $ind//*[@path = string-join(tokenize($svnurl, '/')[not(position() = last())],'/')
-                                    or @svnpath = string-join(tokenize($svnurl, '/')[not(position() = last())],'/')]
+                                    or @svnurl = string-join(tokenize($svnurl, '/')[not(position() = last())],'/')]
                 return insert node control-util:create-path-index(control-util:get-canonical-path($svnurl), tokenize($svnurl, '/')[last()], 'directory', $target/@virtual-path || '/' || tokenize($svnurl, '/')[last()], '')
                        into $target,
          for $action in $parsed-log/*:delete
          let $svnurl := replace(control-util:get-local-path(string-join(($parsed-log/@repo-path, $action/@path), '/')), '/$', '')
-         return for $target in $ind//*[@svnpath = $svnurl]
-                return delete node $target,
-         for $action in $parsed-log/*:propupdate
-         let $svnurl := replace(control-util:get-local-path(string-join(($parsed-log/@repo-path, $action/@path), '/')), '/$', '')
-         return for $target in $ind//*[@svnpath = $svnurl]
-                return (for $r in $parsed-log//*:propdiff//*:removed
-                        return delete node $target/*:external[@name = $r/@name],
-                        for $a in $parsed-log//*:propdiff/*:added
-                        let $e := for $d in $parsed-log//added
-                                  return <external url="{$d/@svnurl}" mount="{$d/@name}"/>
-                        return insert node control-util:create-external-path(control-util:get-canonical-path($svnurl), $e, $target/@virtual-path) into $target)
-        )(:hier ist noch ein Fehler :)
+         return for $target in $ind//*[@svnurl = $svnurl]
+                return delete node $target
+        )
         return $ind
       return control-backend:writeindextofileupdate($updated-index))
 };
@@ -119,26 +107,6 @@ declare function control-backend:remove-path-index-at-svnurl($index, $svnurl as 
        )
        return $ind
   return $updated-index
-};
-
-declare function control-backend:parse-prop-update($svnurl as xs:string, $revision as xs:string) as element(*){
-  let $pre-rev := xs:string(xs:int($revision) - 1),
-      $pre := tokenize(svn:propget($svnurl,$control:svnauth,'svn:externals',$pre-rev)/*:param[@name='value']/@value,'&#xA;')[.],
-      $head := tokenize(svn:propget($svnurl,$control:svnauth,'svn:externals',$revision)/*:param[@name='value']/@value,'&#xA;')[.],
-      $added := $head[not(. = $pre)],
-      $removed := $pre[not(. = $head)]
-return 
-  <propdiff>
-    {for $a in $added
-     let $name   := control-util:strip-whitespace(tokenize($a,' ')[last()]),
-         $svnurl := control-util:get-external-url(control-util:strip-whitespace(tokenize($a,' ')[1]))
-     return <added name="{$name}" svnurl="{$svnurl}"></added>,
-     for $ r in $removed
-     let $name   := control-util:strip-whitespace(tokenize($r,' ')[last()]),
-         $svnurl := control-util:get-external-url(control-util:strip-whitespace(tokenize($r,' ')[1]))
-     return <removed name="{$name}" svnurl="{$svnurl}"></removed>
-    }
-  </propdiff>
 };
 
 declare 
@@ -281,3 +249,14 @@ function control-backend:fill-content-index-dbs($customization as xs:string, $wc
       return control-backend:add-xml-by-path($wcp, $dbp, $customization)
   else web:error(401, 'You are not permitted to fill the content index DBs')
 };
+
+declare
+  %rest:GET
+  %rest:path("/control-backend/{$customization}/set-updindex/{$new-val}")
+  %updating
+function control-backend:set-updindex($customization as xs:string, $new-val as xs:boolean) {
+  update:output(<success/>),
+  let $db as xs:string := $control:config/control:db => string()
+  return db:optimize($db, true(), map{'updindex': $new-val})
+};
+
