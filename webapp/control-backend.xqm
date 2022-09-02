@@ -66,7 +66,8 @@ function control-backend:process-commit-log($log as xs:string, $customization as
   update:output(<success/>),
   let $parsed-log := control-backend:parse-commit-log($log, $customization)
   return
-    (for $pattern in doc('../control/config.xml')/control:config/control:ftindexes/control:file/@pattern
+    (for $pattern in ($control:config/control:ftindexes/control:file/@pattern,
+                      $control:config/control:also-indexable/control:file/@pattern)
     return
       for $action in $parsed-log/*[matches(@path, $pattern)]
       return (
@@ -157,12 +158,12 @@ declare function control-backend:get-commit-file($path-to-repo, $path-in-repo, $
 declare 
 %updating
 function control-backend:remove-xml-by-path($path, $customization) {
-  let $dbname := string(doc('../control/config.xml')/control:config/control:db)
+  let $dbname := string($control:config/control:db)
   return 
     for $doc in db:open($dbname, $path)
     let $lang := control-backend:determine-lang($doc)
     return (
-      db:delete(doc('../control/config.xml')/control:config/control:ftindexes/control:ftindex[@lang = ($lang, 'en')[1]], $path),
+      db:delete($control:config/control:ftindexes/control:ftindex[@lang = ($lang, 'en')[1]], $path),
       db:delete($dbname, $path)
     )
 };
@@ -173,6 +174,7 @@ declare
   %rest:path("/control-backend/{$customization}/initialize")
   %updating
 function control-backend:initialize($customization as xs:string) {
+  update:output(<success/>),
   let $db as xs:string := string(doc('../control/config.xml')/control:config/control:db),
       $hierdir as xs:string := string(doc('../control/config.xml')/control:config/control:repos/control:repo[@role = 'hierarchy']/@path)
   return (
@@ -194,19 +196,22 @@ declare
   %output:method("xml")
   %updating
 function control-backend:add-xml-by-path($fspath as xs:string, $dbpath as xs:string, $customization as xs:string) {
-  let $doc as document-node(element(*)) := try { doc($fspath) } catch * { document { <error/> } },
+  let $doc as item() := try { doc($fspath) } 
+        catch err:FODC0002 { <text/> }
+        catch * { document { <error/> } },
       $lang as xs:string? := control-backend:determine-lang($doc)[. = ('de', 'en')],
-      $ftdb as xs:string := string($control:config/control:ftindexes/control:ftindex[@lang = ($lang, 'en')[1]]),
+      $ftdb as xs:string? := $control:config/control:ftindexes/control:ftindex[@lang = $lang] ! string(.),
       $db as xs:string := string($control:config/control:db),
       $dbpath-or-fallback := if (not($dbpath)) then $fspath else $dbpath 
   return
   (
-     try {
-       db:replace($ftdb, $dbpath-or-fallback, control-backend:apply-ft-xslt($doc))
-     } catch * {},
-     try {
-       db:replace($db, $dbpath-or-fallback, $doc)
-     } catch * {}
+     if ($doc/self::text) then db:replace($db, $dbpath-or-fallback, $fspath, map{'parser': 'text'})
+     else try {
+            if ($ftdb) then db:replace($ftdb, $dbpath-or-fallback, control-backend:apply-ft-xslt($doc)) else ()
+          } catch * {},
+          try {
+            db:replace($db, $dbpath-or-fallback, $doc)
+          } catch * {}
   )
 };
 
@@ -275,3 +280,14 @@ function control-backend:fill-content-index-dbs($customization as xs:string, $wc
       return control-backend:add-xml-by-path($wcp, $dbp, $customization)
   else web:error(401, 'You are not permitted to fill the content index DBs')
 };
+
+declare
+  %rest:GET
+  %rest:path("/control-backend/{$customization}/set-updindex/{$new-val}")
+  %updating
+function control-backend:set-updindex($customization as xs:string, $new-val as xs:boolean) {
+  update:output(<success/>),
+  let $db as xs:string := $control:config/control:db => string()
+  return db:optimize($db, true(), map{'updindex': $new-val})
+};
+
