@@ -88,8 +88,7 @@ function control-backend:process-commit-log($log as xs:string, $customization as
         modify (
          for $action in $parsed-log/*:add
          let $svnurl := replace(control-util:get-local-path(string-join(($parsed-log/@repo-path, $action/@path), '/')), '/$', '')
-         return for $target in $ind//*[@path = string-join(tokenize($svnurl, '/')[not(position() = last())],'/')
-                                    or @svnpath = string-join(tokenize($svnurl, '/')[not(position() = last())],'/')]
+         return for $target in $ind//*[@svnpath = string-join(tokenize($svnurl, '/')[not(position() = last())],'/')]
                 return insert node control-util:create-path-index(control-util:get-canonical-path($svnurl), tokenize($svnurl, '/')[last()], 'directory', $target/@virtual-path || '/' || tokenize($svnurl, '/')[last()], '')
                        into $target,
          for $action in $parsed-log/*:delete
@@ -105,7 +104,7 @@ function control-backend:process-commit-log($log as xs:string, $customization as
                         let $e := for $d in $parsed-log//added
                                   return <external url="{$d/@svnurl}" mount="{$d/@name}"/>
                         return insert node control-util:create-external-path(control-util:get-canonical-path($svnurl), $e, $target/@virtual-path) into $target)
-        )(:hier ist noch ein Fehler :)
+        )
         return $ind
       return control-backend:writeindextofileupdate($updated-index))
 };
