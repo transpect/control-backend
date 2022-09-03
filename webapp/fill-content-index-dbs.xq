@@ -12,7 +12,9 @@ function control-backend:fill-content-index-dbs2($customization as xs:string, $w
     let $index := db:open('INDEX', 'index.xml'),
         $hierarchy-repo := $control:config/control:repos/control:repo[@role = 'hierarchy'],
         $hierarchy-path := $hierarchy-repo/@path,
-        $content-paths := $index//file/@virtual-path[matches(., $control:config/control:ftindexes/control:file/@pattern)]
+        $content-paths := for $pattern in ($control:config/control:ftindexes/control:file/@pattern,
+                                           $control:config/control:also-indexable/control:file/@pattern)
+                          return $index//file/@virtual-path[matches(., $pattern)]
     return
       for $cp in $content-paths
       let $wcp := replace($cp, '^' || $hierarchy-path, $wcpath),

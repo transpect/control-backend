@@ -206,12 +206,19 @@ function control-backend:add-xml-by-path($fspath as xs:string, $dbpath as xs:str
   return
   (
      if ($doc/self::text) then db:replace($db, $dbpath-or-fallback, $fspath, map{'parser': 'text'})
-     else try {
-            if ($ftdb) then db:replace($ftdb, $dbpath-or-fallback, control-backend:apply-ft-xslt($doc)) else ()
-          } catch * {},
-          try {
-            db:replace($db, $dbpath-or-fallback, $doc)
-          } catch * {}
+     else (
+            try {
+              if ($ftdb) then db:replace($ftdb, $dbpath-or-fallback, control-backend:apply-ft-xslt($doc)) else ()
+            } catch * {},
+            try {
+              db:replace($db, $dbpath-or-fallback, $doc)
+            } catch * {
+              db:replace($db, $dbpath-or-fallback,
+              <error fspath="{$fspath}" dbpath="{$dbpath}" code="{$err:code}">
+                { $err:description }
+              </error>)
+            }
+          )
   )
 };
 
@@ -254,7 +261,7 @@ declare function control-backend:apply-ft-xslt($doc as document-node(element(*))
      return if ($stylesheet) then xslt:transform($doc, $stylesheet) else $doc
 };
 
-declare function control-backend:determine-lang($doc as document-node(element(*))) as xs:string? {
+declare function control-backend:determine-lang($doc as node()?) as xs:string? {
   ($doc/*/@xml:lang => tokenize('-'))[1]
 };
 
