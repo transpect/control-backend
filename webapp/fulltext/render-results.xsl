@@ -52,90 +52,99 @@
     <xsl:for-each-group select="$results" 
       group-by="tokenize(@virtual-path, '/')[normalize-space()][$hierarchy-component]">
       <xsl:sort select="current-grouping-key()"/>
+      <xsl:variable name="is-overrides-group" select="exists(@type)" as="xs:boolean"/>
       <xsl:variable name="terminals" as="element(result)*"
         select="current-group()/self::result[@virtual-steps + 1 - $work-id-position = $hierarchy-component]"/>
+      <xsl:variable name="show-overrides" as="xs:boolean" 
+        select="$is-overrides-group and $hierarchy-component = $work-id-position"/>
+      <xsl:variable name="context" as="element(result)" select="."/>
+      <xsl:variable name="summary-link" as="element(html:a)">
+        <a href="{$siteurl}?svnurl={
+                  if ($hierarchy-component gt @virtual-steps - $work-id-position)
+                  then string-join(
+                         tokenize(@svnurl, '/')[position() le min((
+                                                    last() - $context/@virtual-steps + $hierarchy-component,
+                                                    last() -1
+                                               ))],
+                         '/'
+                       )
+                  else $svnbaseurl || 
+                         string-join(
+                         tokenize(@virtual-path, '/')[position() le last() - $context/@virtual-steps + $hierarchy-component],
+                         '/'
+                       )}&amp;restrict_path=true&amp;term={$term}&amp;xpath={$xpath}{
+                         string-join(for $lang in tokenize($langs, ',') return '&amp;lang=' || $lang)
+                       }{
+                         string-join(for $type in tokenize($types, ',') return '&amp;type=' || $type)
+                       }"
+           target="_blank">
+          <xsl:value-of select="current-grouping-key()"/>
+          <xsl:if test="exists($terminals)">
+            <xsl:text xml:space="preserve"> </xsl:text>
+            <xsl:value-of select="$terminals[1]/breadcrumbs/title[1]"/>
+          </xsl:if>
+        </a>
+      </xsl:variable>
       <details>
         <xsl:if test="$open or count(current-group()) = 1">
           <xsl:attribute name="open" select="'true'"/>
         </xsl:if>
         <summary>
-          <xsl:variable name="context" as="element(result)" select="."/>
-          <a href="{$siteurl}?svnurl={
-                    if ($hierarchy-component gt @virtual-steps - $work-id-position)
-                    then string-join(
-                           tokenize(@svnurl, '/')[position() le min((
-                                                      last() - $context/@virtual-steps + $hierarchy-component,
-                                                      last() -1
-                                                 ))],
-                           '/'
-                         )
-                    else $svnbaseurl || 
-                           string-join(
-                           tokenize(@virtual-path, '/')[position() le last() - $context/@virtual-steps + $hierarchy-component],
-                           '/'
-                         )}&amp;restrict_path=true&amp;term={$term}&amp;xpath={$xpath}{
-                           string-join(for $lang in tokenize($langs, ',') return '&amp;lang=' || $lang)
-                         }{
-                           string-join(for $type in tokenize($types, ',') return '&amp;type=' || $type)
-                         }"
-             target="_blank">
-            <xsl:value-of select="current-grouping-key()"/>
-            <xsl:if test="exists($terminals)">
-              <xsl:text xml:space="preserve"> </xsl:text>
-              <xsl:value-of select="$terminals[1]/breadcrumbs/title[1]"/>
-            </xsl:if>
-          </a>
+          <xsl:sequence select="$summary-link"/>
           <xsl:text xml:space="preserve"> (</xsl:text>
           <xsl:value-of select="count(current-group())"/>
           <xsl:text>)</xsl:text>
           <xsl:call-template name="types"/>
         </summary>
-        <xsl:if test="$open">
-          <xsl:for-each-group select="current-group()" group-by="(@breadcrumbs-signature, @path)[1]">
-            <xsl:choose>
-              <xsl:when test="exists(current-group()/context)">
-                <details open="true" class="work-matches">
-                  <summary>
-                    <xsl:apply-templates select="breadcrumbs" mode="render-work-matches"/>
-                  </summary>
-                  <ul>
-                    <xsl:apply-templates select="current-group()/context" mode="render-work-matches"/>
-                  </ul>
-                </details>    
-              </xsl:when>
-              <xsl:when test="exists(current-group()/@type) and empty(current-group()/breadcrumbs)">
-                <!-- overrides-only results -->
-                <ul>
-                  <xsl:apply-templates select="current-group()" mode="render-override-matches"/>
-                </ul>
-              </xsl:when>
-              <xsl:when test="empty(current-group()/breadcrumbs)">
-                <!-- XPath-only results -->
-                <ul>
-                  <xsl:apply-templates select="current-group()" mode="render-work-matches"/>
-                </ul>
-              </xsl:when>
-              <xsl:otherwise>
-                <p class="search-breadcrumbs">
-                  <xsl:apply-templates select="breadcrumbs" mode="render-work-matches"/>
-                </p>
-              </xsl:otherwise>
-            </xsl:choose>
-          </xsl:for-each-group>
-        </xsl:if>
-        <xsl:if test="exists($terminals)">
-          <xsl:call-template name="by-hierarchy">
-            <xsl:with-param name="hierarchy-component" select="@virtual-steps" as="xs:integer"/>
-            <xsl:with-param name="results" select="$terminals" as="element(result)+"/>
-            <xsl:with-param name="open" as="xs:boolean" select="true()"/>
-          </xsl:call-template>
-        </xsl:if>
-        <xsl:if test="exists(current-group() except $terminals)">
-          <xsl:call-template name="by-hierarchy">
-            <xsl:with-param name="hierarchy-component" select="$hierarchy-component + 1" as="xs:integer"/>
-            <xsl:with-param name="results" select="current-group() except $terminals" as="element(result)+"/>
-          </xsl:call-template>
-        </xsl:if>
+        <xsl:choose>
+          <xsl:when test="$show-overrides">
+            <ul>
+              <xsl:apply-templates select="current-group()" mode="render-override-matches"/>
+            </ul>
+          </xsl:when>
+          <xsl:otherwise>
+            <xsl:if test="$open">
+              <xsl:for-each-group select="current-group()" group-by="(@breadcrumbs-signature, @path)[1]">
+                <xsl:choose>
+                  <xsl:when test="exists(current-group()/context)">
+                    <details open="true" class="work-matches">
+                      <summary>
+                        <xsl:apply-templates select="breadcrumbs" mode="render-work-matches"/>
+                      </summary>
+                      <ul>
+                        <xsl:apply-templates select="current-group()/context" mode="render-work-matches"/>
+                      </ul>
+                    </details>
+                  </xsl:when>
+                  <xsl:when test="empty(current-group()/breadcrumbs)">
+                    <!-- XPath-only results -->
+                    <ul>
+                      <xsl:apply-templates select="current-group()" mode="render-work-matches"/>
+                    </ul>
+                  </xsl:when>
+                  <xsl:otherwise>
+                    <p class="search-breadcrumbs">
+                      <xsl:apply-templates select="breadcrumbs" mode="render-work-matches"/>
+                    </p>
+                  </xsl:otherwise>
+                </xsl:choose>
+              </xsl:for-each-group>
+            </xsl:if>
+            <xsl:if test="exists($terminals)">
+              <xsl:call-template name="by-hierarchy">
+                <xsl:with-param name="hierarchy-component" select="@virtual-steps" as="xs:integer"/>
+                <xsl:with-param name="results" select="$terminals" as="element(result)+"/>
+                <xsl:with-param name="open" as="xs:boolean" select="true()"/>
+              </xsl:call-template>
+            </xsl:if>
+            <xsl:if test="exists(current-group() except $terminals)">
+              <xsl:call-template name="by-hierarchy">
+                <xsl:with-param name="hierarchy-component" select="$hierarchy-component + 1" as="xs:integer"/>
+                <xsl:with-param name="results" select="current-group() except $terminals" as="element(result)+"/>
+              </xsl:call-template>
+            </xsl:if>
+          </xsl:otherwise>
+        </xsl:choose>
       </details>
     </xsl:for-each-group>
   </xsl:template>
