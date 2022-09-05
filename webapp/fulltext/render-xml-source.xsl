@@ -188,7 +188,7 @@
                   and not(in-scope-prefixes(.) = prefix-from-QName(node-name(.)))">
       <span>
         <span class="name att">
-          <xsl:text> xmlns=</xsl:text>
+          <xsl:text xml:space="preserve"> xmlns=</xsl:text>
         </span>
         <span class="val att">
           <xsl:text>"</xsl:text>
