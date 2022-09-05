@@ -7,10 +7,12 @@
   exclude-result-prefixes="xs saxon html" version="3.0">
 
   <xsl:mode name="render-work-matches" on-no-match="text-only-copy"/>
+  <xsl:mode name="render-override-matches" on-no-match="text-only-copy"/>
   <xsl:mode name="augment-xpath-links" on-no-match="shallow-copy"/>
 
   <xsl:param name="term" as="xs:string" select="'test'"/>
   <xsl:param name="xpath" as="xs:string" select="''"/>
+  <xsl:param name="types" as="xs:string" select="''"/>
   <xsl:param name="langs" as="xs:string" select="'de,en'"/>
   <xsl:param name="svnbaseurl" as="xs:string" select="'http://localhost/svn'"/>
   <xsl:param name="siteurl" as="xs:string" select="'http://localhost/control'"/>
@@ -73,6 +75,8 @@
                            '/'
                          )}&amp;restrict_path=true&amp;term={$term}&amp;xpath={$xpath}{
                            string-join(for $lang in tokenize($langs, ',') return '&amp;lang=' || $lang)
+                         }{
+                           string-join(for $type in tokenize($types, ',') return '&amp;type=' || $type)
                          }"
              target="_blank">
             <xsl:value-of select="current-grouping-key()"/>
@@ -84,6 +88,7 @@
           <xsl:text xml:space="preserve"> (</xsl:text>
           <xsl:value-of select="count(current-group())"/>
           <xsl:text>)</xsl:text>
+          <xsl:call-template name="types"/>
         </summary>
         <xsl:if test="$open">
           <xsl:for-each-group select="current-group()" group-by="(@breadcrumbs-signature, @path)[1]">
@@ -97,6 +102,12 @@
                     <xsl:apply-templates select="current-group()/context" mode="render-work-matches"/>
                   </ul>
                 </details>    
+              </xsl:when>
+              <xsl:when test="exists(current-group()/@type) and empty(current-group()/breadcrumbs)">
+                <!-- overrides-only results -->
+                <ul>
+                  <xsl:apply-templates select="current-group()" mode="render-override-matches"/>
+                </ul>
               </xsl:when>
               <xsl:when test="empty(current-group()/breadcrumbs)">
                 <!-- XPath-only results -->
@@ -129,6 +140,17 @@
     </xsl:for-each-group>
   </xsl:template>
 
+  <xsl:template name="types">
+    <xsl:param name="nodes" select="current-group()"/>
+    <xsl:variable name="types" as="xs:string*" select="$nodes/@type"/>
+    <xsl:for-each select="distinct-values($types)">
+      <xsl:text xml:space="preserve"> </xsl:text>
+      <span class="filetype {.}">
+        <xsl:value-of select="."/>
+      </span>
+    </xsl:for-each>
+  </xsl:template>
+
   <xsl:template match="result" mode="render-work-matches">
     <p class="search-breadcrumbs">
       <xsl:apply-templates select="breadcrumbs/title[position() gt 1]" mode="#current"/>
@@ -139,6 +161,12 @@
   <xsl:template match="result[empty(context)][empty(breadcrumbs)]" mode="render-work-matches">
     <li>
       <xsl:apply-templates select="@path" mode="#current"/>
+    </li>
+  </xsl:template>
+  
+  <xsl:template match="result" mode="render-override-matches">
+    <li>
+      <xsl:apply-templates select="@dbpath" mode="#current"/>
     </li>
   </xsl:template>
 
@@ -170,6 +198,16 @@
     <p class="search-xpath">
       <input type="button" value="Copy"/>
       <xsl:apply-templates select="$prelim" mode="augment-xpath-links"/>
+    </p>
+  </xsl:template>
+  
+  <xsl:template match="@dbpath" mode="render-override-matches">
+    <xsl:variable name="dbpath" as="xs:string" select="."/>
+    <p class="override">
+      <a target="xmlsrc" href="{$siteurl}/{$customization}/render-xml-source?svn-url={$dbpath}&amp;xpath=/*{
+        if (../@type = 'css') then '&amp;text=true&amp;indent=false' else ''}">
+        <xsl:value-of select="string-join(tokenize(., '/')[position() ge last() - 1], '/')"/>
+      </a>
     </p>
   </xsl:template>
   

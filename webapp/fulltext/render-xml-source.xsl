@@ -15,6 +15,7 @@
   <xsl:param name="css-url" as="xs:string" select="''"/>
   <xsl:param name="scaffold" as="xs:boolean" select="false()"/>
   <xsl:param name="indent" as="xs:boolean" select="true()"/>
+  <xsl:param name="text" as="xs:boolean" select="false()"/>
 
   <xsl:template match="*">
     <xsl:variable name="root" as="document-node(element(*))">
@@ -80,6 +81,29 @@
       </xsl:choose>-->
       <xsl:next-match/>
     </span>
+  </xsl:template>
+  
+  <xsl:template match="/*" mode="serialize" priority="2">
+    <xsl:choose>
+      <xsl:when test="$text"><!-- assumption: /text/line document -->
+        <xsl:apply-templates select="*" mode="#current"/>
+      </xsl:when>
+      <xsl:otherwise>
+        <xsl:next-match/>
+      </xsl:otherwise>
+    </xsl:choose>
+  </xsl:template>
+  
+  <xsl:template match="/text/line" mode="serialize" priority="2">
+    <xsl:choose>
+      <xsl:when test="$text">
+        <xsl:apply-templates select="node()" mode="#current"/>
+        <xsl:text xml:space="preserve">&#xa;</xsl:text>
+      </xsl:when>
+      <xsl:otherwise>
+        <xsl:next-match/>
+      </xsl:otherwise>
+    </xsl:choose>
   </xsl:template>
   
   <xsl:template match="*" mode="serialize" priority="1">
