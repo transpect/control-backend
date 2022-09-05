@@ -213,7 +213,7 @@ function control-backend:add-xml-by-path($fspath as xs:string, $dbpath as xs:str
             try {
               db:replace($db, $dbpath-or-fallback, $doc)
             } catch * {
-              db:replace($db, $dbpath-or-fallback,
+              db:replace($db, 'error/' || $dbpath-or-fallback,
               <error fspath="{$fspath}" dbpath="{$dbpath}" code="{$err:code}">
                 { $err:description }
               </error>)
