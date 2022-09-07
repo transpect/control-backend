@@ -95,8 +95,8 @@
           <xsl:text xml:space="preserve"> (</xsl:text>
           <xsl:value-of select="count(current-group())"/>
           <xsl:text>)</xsl:text>
-          <xsl:value-of select="count(current-group())"/>
           <xsl:call-template name="types"/>
+          <xsl:call-template name="style-types"/>
         </summary>
         <xsl:choose>
           <xsl:when test="$show-overrides">
@@ -170,6 +170,17 @@
     <xsl:for-each select="distinct-values($types)">
       <xsl:text xml:space="preserve"> </xsl:text>
       <span class="filetype {.}">
+        <xsl:value-of select="."/>
+      </span>
+    </xsl:for-each>
+  </xsl:template>
+  
+  <xsl:template name="style-types">
+    <xsl:param name="nodes" select="current-group()"/>
+    <xsl:variable name="types" as="xs:string*" select="$nodes/@style-type"/>
+    <xsl:for-each select="distinct-values($types)">
+      <xsl:text xml:space="preserve"> </xsl:text>
+      <span class="styletype _{.}">
         <xsl:value-of select="."/>
       </span>
     </xsl:for-each>

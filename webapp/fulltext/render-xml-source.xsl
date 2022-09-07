@@ -16,7 +16,8 @@
   <xsl:param name="scaffold" as="xs:boolean" select="false()"/>
   <xsl:param name="indent" as="xs:boolean" select="true()"/>
   <xsl:param name="text" as="xs:boolean" select="false()"/>
-
+  <xsl:param name="max-length-for-atts" as="xs:integer" select="120"/>
+  
   <xsl:template match="*">
     <xsl:variable name="root" as="document-node(element(*))">
       <xsl:choose>
@@ -135,14 +136,13 @@
         <xsl:apply-templates select="@*" mode="#current"/>
       </xsl:document>
     </xsl:variable>
-    <xsl:variable name="max-length-for-atts" as="xs:integer" select="120"/>
     <xsl:iterate select="$atts/node()">
       <xsl:param name="length" as="xs:integer" select="0"/>
       <xsl:variable name="multiline-max" as="xs:integer" 
         select="max(tokenize(., '&#xa;') ! string-length(.)) => xs:integer()"/>
       <xsl:variable name="new-length" as="xs:integer" select="$length + $multiline-max"/>
       <xsl:if test="$new-length gt $max-length-for-atts">
-        <xsl:text>&#xa;</xsl:text>
+        <br xmlns="http://www.w3.org/1999/xhtml"/>
       </xsl:if>
       <xsl:sequence select="."/>
       <xsl:next-iteration>
