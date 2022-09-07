@@ -10,7 +10,8 @@
   <xsl:mode name="render-override-matches" on-no-match="text-only-copy"/>
   <xsl:mode name="augment-xpath-links" on-no-match="shallow-copy"/>
 
-  <xsl:param name="term" as="xs:string" select="'test'"/>
+  <xsl:param name="term" as="xs:string" select="''"/>
+  <xsl:param name="overrides-term" as="xs:string" select="''"/>
   <xsl:param name="xpath" as="xs:string" select="''"/>
   <xsl:param name="types" as="xs:string" select="''"/>
   <xsl:param name="langs" as="xs:string" select="'de,en'"/>
@@ -25,7 +26,7 @@
   <xsl:param name="customization" as="xs:string" select="'default'"/>
 
   <xsl:template match="search-results">
-    <div id="search-results">
+    <div class="search-results">
       <xsl:choose>
         <xsl:when test="$group = 'hierarchy'">
           <details open="true">
@@ -72,7 +73,7 @@
                          string-join(
                          tokenize(@virtual-path, '/')[position() le last() - $context/@virtual-steps + $hierarchy-component],
                          '/'
-                       )}&amp;restrict_path=true&amp;term={$term}&amp;xpath={$xpath}{
+                       )}&amp;restrict_path=true&amp;term={$term}&amp;overrides-term={$overrides-term}&amp;xpath={$xpath}{
                          string-join(for $lang in tokenize($langs, ',') return '&amp;lang=' || $lang)
                        }{
                          string-join(for $type in tokenize($types, ',') return '&amp;type=' || $type)
@@ -94,6 +95,7 @@
           <xsl:text xml:space="preserve"> (</xsl:text>
           <xsl:value-of select="count(current-group())"/>
           <xsl:text>)</xsl:text>
+          <xsl:value-of select="count(current-group())"/>
           <xsl:call-template name="types"/>
         </summary>
         <xsl:choose>
@@ -129,6 +131,19 @@
                   </xsl:otherwise>
                 </xsl:choose>
               </xsl:for-each-group>
+            </xsl:if>
+            <xsl:variable name="overrides-in-hierarchy" as="element(result)*"
+              select="if ($is-overrides-group)
+                      then current-group()[@virtual-steps + 1 - $work-id-position = $hierarchy-component]
+                      else ()">
+              <!-- only override-params.xml -->
+            </xsl:variable>
+            <xsl:if test="exists($overrides-in-hierarchy)">
+              <ul>
+                <xsl:apply-templates select="$overrides-in-hierarchy" mode="render-override-matches">
+                  <xsl:with-param name="display-path-steps" select="1" as="xs:integer" tunnel="yes"/>
+                </xsl:apply-templates>
+              </ul>  
             </xsl:if>
             <xsl:if test="exists($terminals)">
               <xsl:call-template name="by-hierarchy">
@@ -211,11 +226,12 @@
   </xsl:template>
   
   <xsl:template match="@dbpath" mode="render-override-matches">
+    <xsl:param name="display-path-steps" select="2" as="xs:integer" tunnel="yes"/>
     <xsl:variable name="dbpath" as="xs:string" select="."/>
     <p class="override">
       <a target="xmlsrc" href="{$siteurl}/{$customization}/render-xml-source?svn-url={$dbpath}&amp;xpath=/*{
         if (../@type = 'css') then '&amp;text=true&amp;indent=false' else ''}">
-        <xsl:value-of select="string-join(tokenize(., '/')[position() ge last() - 1], '/')"/>
+        <xsl:value-of select="string-join(tokenize(., '/')[position() gt last() - $display-path-steps], '/')"/>
       </a>
     </p>
   </xsl:template>
