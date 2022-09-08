@@ -9,6 +9,8 @@
   <xsl:mode name="render-work-matches" on-no-match="text-only-copy"/>
   <xsl:mode name="render-override-matches" on-no-match="text-only-copy"/>
   <xsl:mode name="augment-xpath-links" on-no-match="shallow-copy"/>
+  <xsl:mode name="expand-native-name" on-no-match="shallow-copy"/>
+  <xsl:mode name="strip-path" on-no-match="shallow-copy"/>
 
   <xsl:param name="term" as="xs:string" select="''"/>
   <xsl:param name="overrides-term" as="xs:string" select="''"/>
@@ -17,7 +19,7 @@
   <xsl:param name="langs" as="xs:string" select="'de,en'"/>
   <xsl:param name="svnbaseurl" as="xs:string" select="'http://localhost/svn'"/>
   <xsl:param name="siteurl" as="xs:string" select="'http://localhost/control'"/>
-  <xsl:param name="group" select="'hierarchy'"/>
+  <xsl:param name="group" select="'content-hierarchy'"/>
   <xsl:param name="work-id-position" as="xs:integer" select="3">
     <!-- the path component position, measured from the XML file name, which is 1.
       Example: in imprint/series/workid/xml/file.xml, workid is 3rd to last --> 
@@ -27,22 +29,30 @@
 
   <xsl:template match="search-results">
     <div class="search-results">
-      <xsl:choose>
-        <xsl:when test="$group = 'hierarchy'">
-          <details open="true">
-            <summary>
-              <xsl:text expand-text="yes">Total: {@count}</xsl:text>
-            </summary>
-            <xsl:call-template name="by-hierarchy">
+      <details open="true">
+        <summary>
+          <xsl:text expand-text="yes">Total: {@count}</xsl:text>
+        </summary>
+        <xsl:choose>
+          <xsl:when test="$group = 'content-hierarchy'">
+            <xsl:call-template name="by-content-hierarchy">
               <xsl:with-param name="results" select="result"/>
-            </xsl:call-template>  
-          </details>
-        </xsl:when>
-      </xsl:choose>  
+            </xsl:call-template>
+          </xsl:when>
+          <xsl:when test="$group = 'style-hierarchy'">
+            <xsl:variable name="expand-native-name" as="element(result)*">
+              <xsl:apply-templates select="result" mode="expand-native-name"/>
+            </xsl:variable>
+            <xsl:call-template name="by-style-hierarchy">
+              <xsl:with-param name="results" select="$expand-native-name"/>
+            </xsl:call-template>
+          </xsl:when>
+        </xsl:choose>
+      </details>
     </div>
   </xsl:template>
 
-  <xsl:template name="by-hierarchy">
+  <xsl:template name="by-content-hierarchy">
     <xsl:param name="hierarchy-component" as="xs:integer" select="1"/>
     <xsl:param name="results" as="element(result)*"/>
     <xsl:param name="open" as="xs:boolean" select="false()">
@@ -50,7 +60,7 @@
     </xsl:param>
     <!-- assumption: @virtual-path starts with a slash and its two (for $work-id-position=3)
          last components (example: xml/file.xml) are not used for grouping  -->
-    <xsl:for-each-group select="$results" 
+    <xsl:for-each-group select="$results"
       group-by="tokenize(@virtual-path, '/')[normalize-space()][$hierarchy-component]">
       <xsl:sort select="current-grouping-key()"/>
       <xsl:variable name="is-overrides-group" select="exists(@type)" as="xs:boolean"/>
@@ -62,14 +72,14 @@
       <xsl:variable name="summary-link" as="element(html:a)">
         <a href="{$siteurl}?svnurl={
                   if ($hierarchy-component gt @virtual-steps - $work-id-position)
-                  then string-join(
+                  then  '/' || string-join(
                          tokenize(@svnurl, '/')[position() le min((
                                                     last() - $context/@virtual-steps + $hierarchy-component,
                                                     last() -1
                                                ))],
                          '/'
                        )
-                  else $svnbaseurl || 
+                  else $svnbaseurl || '/' || 
                          string-join(
                          tokenize(@virtual-path, '/')[position() le last() - $context/@virtual-steps + $hierarchy-component],
                          '/'
@@ -146,20 +156,61 @@
               </ul>  
             </xsl:if>
             <xsl:if test="exists($terminals)">
-              <xsl:call-template name="by-hierarchy">
+              <xsl:call-template name="by-content-hierarchy">
                 <xsl:with-param name="hierarchy-component" select="@virtual-steps" as="xs:integer"/>
                 <xsl:with-param name="results" select="$terminals" as="element(result)+"/>
                 <xsl:with-param name="open" as="xs:boolean" select="true()"/>
               </xsl:call-template>
             </xsl:if>
             <xsl:if test="exists(current-group() except $terminals)">
-              <xsl:call-template name="by-hierarchy">
+              <xsl:call-template name="by-content-hierarchy">
                 <xsl:with-param name="hierarchy-component" select="$hierarchy-component + 1" as="xs:integer"/>
                 <xsl:with-param name="results" select="current-group() except $terminals" as="element(result)+"/>
               </xsl:call-template>
             </xsl:if>
           </xsl:otherwise>
         </xsl:choose>
+      </details>
+    </xsl:for-each-group>
+  </xsl:template>
+
+  <xsl:template name="by-style-hierarchy">
+    <xsl:param name="results" as="element(result)*"/>
+    <xsl:param name="open" as="xs:boolean" select="false()"/>
+    <xsl:if test="exists($results[empty(path)])">
+      <xsl:for-each-group select="$results[empty(path)]" group-by="@native-name">
+        <xsl:sort select="current-grouping-key()" collation="http://www.w3.org/2013/collation/UCA?strength=secondary"/>
+        <details>
+          <summary>
+            <xsl:sequence select="current-grouping-key()"/>
+            <xsl:text xml:space="preserve"> (</xsl:text>
+            <xsl:value-of select="count(current-group())"/>
+            <xsl:text>)</xsl:text>
+          </summary>
+          <xsl:call-template name="by-content-hierarchy">
+            <xsl:with-param name="results" select="current-group()"/>
+          </xsl:call-template>
+        </details>
+      </xsl:for-each-group>
+    </xsl:if>
+    <xsl:for-each-group select="$results[path]" group-by="path[1]/node()[1]">
+      <xsl:sort select="current-grouping-key()"/>
+      <details>
+        <xsl:if test="$open or count(current-group()) = 1 or exists(path/html:span)">
+          <xsl:attribute name="open" select="'true'"/>
+        </xsl:if>
+        <summary>
+          <xsl:sequence select="path[1]/node()[1]"/>
+          <xsl:text xml:space="preserve"> (</xsl:text>
+          <xsl:value-of select="count(current-group())"/>
+          <xsl:text>)</xsl:text>
+        </summary>
+        <xsl:variable name="strip-path" as="element(result)+">
+          <xsl:apply-templates select="current-group()" mode="strip-path"/>
+        </xsl:variable>
+        <xsl:call-template name="by-style-hierarchy">
+          <xsl:with-param name="results" select="$strip-path"/>
+        </xsl:call-template>
       </details>
     </xsl:for-each-group>
   </xsl:template>
@@ -265,5 +316,29 @@
     <span class="search-mark">
       <xsl:apply-templates mode="#current"/>
     </span>
+  </xsl:template>
+  
+  <xsl:template match="result" mode="expand-native-name" xmlns="" expand-text="yes">
+    <xsl:copy>
+      <xsl:copy-of select="@*"/>
+      <path><span xmlns="http://www.w3.org/1999/xhtml" class="styletype _{@style-type}">{@style-type}</span></path>
+      <xsl:for-each select="tokenize(@native-name, ':')">
+        <xsl:variable name="tilde" as="xs:string+" select="tokenize(., '(_-_|[˜~])')"/>
+        <path>
+          <xsl:value-of select="$tilde[1]"/>
+          <xsl:for-each select="$tilde[position() gt 1]">
+            <tilde>{.}</tilde>           
+          </xsl:for-each>
+        </path>
+      </xsl:for-each>
+    </xsl:copy>
+  </xsl:template>
+  
+  <xsl:template match="result/path[1]" mode="strip-path"/>
+  
+  <xsl:template match="result" mode="render-style">
+    <li>
+      <xsl:value-of select="@native-name"/>
+    </li>
   </xsl:template>
 </xsl:stylesheet>
