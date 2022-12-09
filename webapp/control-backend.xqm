@@ -196,6 +196,7 @@ declare
   %output:method("xml")
   %updating
 function control-backend:add-xml-by-path($fspath as xs:string, $dbpath as xs:string, $customization as xs:string) {
+  if (file:is-dir($fspath)) then () else
   let $doc as item() := try { doc($fspath) } 
         catch err:FODC0002 { <text/> }
         catch * { document { <error/> } },
