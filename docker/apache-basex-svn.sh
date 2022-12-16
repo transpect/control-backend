@@ -9,7 +9,7 @@ sudo -u basex echo $(whoami) $JAVA_HOME _ $PATH
 
 sudo -u basex env "PATH=$PATH" java -version
 
-sudo -u basex env "PATH=$PATH" basex/bin/basexhttp -h$1 -p$2 -s$3 -S
+sudo -u basex env "PATH=$PATH" "BASEX_JVM=-Dorg.basex.FAIRLOCK=true" basex/bin/basexhttp -h$1 -p$2 -s$3 -S
 
 sudo -u basex env "PATH=$PATH" basex/bin/basexclient -p$2 -Padmin -Uadmin -c "ALTER PASSWORD admin $4"
 
