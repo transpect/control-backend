@@ -57,9 +57,21 @@ function control-backend:parse-commit-log($log as xs:string, $customization as x
   }</commit>
 };
 
+declare variable $control-backend:nsdecl := 'import module namespace control-backend="http://transpect.io/control-backend" at "control-backend.xqm"; ';
+
 declare
   %rest:POST("{$log}")
   %rest:path("/control-backend/{$customization}/process-commit-log")
+  %output:method("xml")
+function control-backend:process-commit-log-scheduler($log as xs:string, $customization as xs:string) {
+  jobs:eval($control-backend:nsdecl ||
+               'control-backend:process-commit-log("' || $log || '", "' || $customization || '")',
+            (), map { 'start':'PT4S' } )
+};
+
+declare
+  %rest:POST("{$log}")
+  %rest:path("/control-backend/{$customization}/process-commit-log_")
   %output:method("xml")
   %updating
 function control-backend:process-commit-log($log as xs:string, $customization as xs:string) {
