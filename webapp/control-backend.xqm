@@ -64,9 +64,10 @@ declare
   %rest:path("/control-backend/{$customization}/process-commit-log")
   %output:method("xml")
 function control-backend:process-commit-log-scheduler($log as xs:string, $customization as xs:string) {
-  jobs:eval($control-backend:nsdecl ||
-               'control-backend:process-commit-log("' || $log || '", "' || $customization || '")',
-            (), map { 'start':'PT4S' } )
+  job:eval($control-backend:nsdecl 
+           || 'control-backend:process-commit-log("' 
+           || $log || '", "' || $customization 
+           || '")',(), map { 'start':'PT4S' } )
 };
 
 declare
@@ -156,7 +157,7 @@ declare
   %updating
 function control-backend:writeindextofileupdate($index) {
   file:write('basex/webapp/control/'||$control:indexfile,$index),
-  db:replace('INDEX','index.xml', '/home/transpect-control/basex/webapp/control/index.xml')
+  db:put('INDEX','/home/transpect-control/basex/webapp/control/index.xml','index.xml')
 };
 declare function control-backend:get-commit-file($path-to-repo, $path-in-repo, $revision, $customization) as xs:string {
   (: returns the path to the file that has been saved using svnlook cat :)
@@ -218,18 +219,18 @@ function control-backend:add-xml-by-path($fspath as xs:string, $dbpath as xs:str
       $dbpath-or-fallback := if (not($dbpath)) then $fspath else $dbpath 
   return
   (
-     if ($doc/self::text) then db:replace($db, $dbpath-or-fallback, $fspath, map{'parser': 'text'})
+     if ($doc/self::text) then db:put($db, $fspath, $dbpath-or-fallback, map{'parser': 'text'})
      else (
             try {
-              if ($ftdb) then db:replace($ftdb, $dbpath-or-fallback, control-backend:apply-ft-xslt($doc)) else ()
+              if ($ftdb) then db:put($ftdb, control-backend:apply-ft-xslt($doc), $dbpath-or-fallback) else ()
             } catch * {},
             try {
-              db:replace($db, $dbpath-or-fallback, $doc)
+              db:put($db, $doc, $dbpath-or-fallback)
             } catch * {
-              db:replace($db, 'error/' || $dbpath-or-fallback,
+              db:put($db,
               <error fspath="{$fspath}" dbpath="{$dbpath}" code="{$err:code}">
                 { $err:description }
-              </error>)
+              </error>, 'error/' || $dbpath-or-fallback)
             }
           )
   )
