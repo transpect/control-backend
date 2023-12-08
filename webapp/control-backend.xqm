@@ -157,7 +157,8 @@ declare
   %updating
 function control-backend:writeindextofileupdate($index) {
   file:write('basex/webapp/control/'||$control:indexfile,$index),
-  db:put('INDEX','/home/transpect-control/basex/webapp/control/index.xml','index.xml')
+  db:put('INDEX','/home/transpect-control/basex/webapp/control/index.xml','index.xml'),
+  db:optimize("INDEX", false(), map { 'attrindex': true() })
 };
 declare function control-backend:get-commit-file($path-to-repo, $path-in-repo, $revision, $customization) as xs:string {
   (: returns the path to the file that has been saved using svnlook cat :)
