@@ -1,2 +1,2 @@
 # control-backend
-Infrastructure scripts for BaseX and svn
+Infrastructure scripts for BaseX and svn.
